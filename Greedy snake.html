@@ -32,5 +32,96 @@
 </head>
 <body>
     <div id="content"></div>
+    <script>
+      var $content = $('#content');
+      var snake=null,game = null;
+      // 创建地图🗺
+      function Square(x,y){
+        this.x = x;
+        this.y = y;
+      }
+      Square.prototype.create=function(){
+        var table = $('<table></table>');
+        for(var i=0;i<this.x;i++){
+          var tr = $('<tr></tr>');
+          for(var j=0;j<this.y;j++){
+            tr.append($('<td></td>'));
+          }
+          table.append(tr);
+        }
+        $content.append(table);
+      }
+      var table = new Square(30,30);
+      table.create();
+      // 获取所有的td
+      var $td = $('td');
+      // 创建蛇
+      function Snake(){
+        this.direction={
+          left:{
+            x:-1,
+            y:0
+          },
+          right:{
+            x:1,
+            y:0
+          },
+          top:{
+            x:0,
+            y:-1
+          },
+          bottom:{
+            x:0,
+            y:1
+          }
+        }
+        this.directionNum = this.direction.bottom;
+        this.time = null;
+      }
+      Snake.prototype.addRemove = function(x,flag){
+        if(flag){
+          $td.eq(x).addClass('snake');
+        }else{
+          $td.eq(x).removeClass('snake');
+        }
+      }
+      Snake.prototype.init=function(){
+        var head = new Square(2,0);
+        this.addRemove(head.x+head.y*table.x,true);
+        var body = new Square(1,0);
+        this.addRemove(body.x+body.y*table.x,true);
+        var tail = new Square(0,0);
+        this.addRemove(tail.x+tail.y*table.x,true);
+        this.head = head;
+        this.body = body;
+        this.tail = tail;
+        this.case.move.call(this)
+      }
+      Snake.prototype.case = {
+        move:function(){
+         this.time = setInterval(function(){
+            var newhead = new Square(this.head.x+this.directionNum.x,this.head.y+this.directionNum.y);
+            if(newhead.x>=table.x){
+              newhead.x = 0;
+              this.addRemove(newhead.x+newhead.y*table.x,true);
+            }else{
+              this.addRemove(newhead.x+newhead.y*table.x,true);
+            }
+            if(newhead.y>=table.y){
+              newhead.y = 0;
+              this.addRemove(newhead.x+newhead.y*table.x,true);
+            }else{
+              this.addRemove(newhead.x+newhead.y*table.x,true);
+            }
+            this.addRemove(this.tail.x+this.tail.y*table.x,false);
+            this.tail = this.body;
+            this.body = this.head;
+            this.head = newhead;
+          }.bind(this),500)
+        }
+      }
+      snake = new Snake();
+      snake.init();
+    </script>
 </body>
 </html>
