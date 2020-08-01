@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Greedy snake</title>
     <script src="https://cdn.bootcdn.net/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    
     <style>
         *{
           margin:0;
@@ -23,7 +24,7 @@
       td{
         width: 20px;
         height: 20px;
-        border: 1px solid;
+        /* border: 1px solid; */
       }
       .snake{
         background-color: skyblue;
@@ -34,7 +35,7 @@
     <div id="content"></div>
     <script>
       var $content = $('#content');
-      var snake=null,game = null;
+      var snake=null,game = null,food=null;
       // 创建地图🗺
       function Square(x,y){
         this.x = x;
@@ -51,12 +52,20 @@
         }
         $content.append(table);
       }
+      Square.prototype.addRemove = function(x,flag){
+        if(flag){
+          $td.eq(x).addClass('snake');
+        }else{
+          $td.eq(x).removeClass('snake');
+        }
+      }
       var table = new Square(30,30);
       table.create();
       // 获取所有的td
       var $td = $('td');
       // 创建蛇
       function Snake(){
+        this.pos = [];
         this.direction={
           left:{
             x:-1,
@@ -78,50 +87,136 @@
         this.directionNum = this.direction.bottom;
         this.time = null;
       }
-      Snake.prototype.addRemove = function(x,flag){
-        if(flag){
-          $td.eq(x).addClass('snake');
-        }else{
-          $td.eq(x).removeClass('snake');
-        }
-      }
       Snake.prototype.init=function(){
         var head = new Square(2,0);
-        this.addRemove(head.x+head.y*table.x,true);
+        this.pos.push("2,0");
+        head.addRemove(head.x+head.y*table.x,true);
         var body = new Square(1,0);
-        this.addRemove(body.x+body.y*table.x,true);
+        this.pos.push("1,0");
+        body.addRemove(body.x+body.y*table.x,true);
         var tail = new Square(0,0);
-        this.addRemove(tail.x+tail.y*table.x,true);
+        this.pos.push('0,0');
+        tail.addRemove(tail.x+tail.y*table.x,true);
         this.head = head;
-        this.body = body;
         this.tail = tail;
-        this.case.move.call(this)
+        this.head.last = null;
+        this.head.next = body;
+        body.last = this.head;
+        body.next = this.tail;
+        this.tail.last = body;
+        this.tail.next = null;
       }
+      snake=new Snake();
+      snake.init()
+      Snake.prototype.getNext=function(){
+        // 
+        var a = [this.head.x+this.directionNum.x,this.head.y+this.directionNum.y];
+        // console.log(a)
+        if(this.pos.indexOf(String(a))!=-1){
+          this.case.die.call();
+          return;
+        }
+        if(a[0]==food.pos[0]&&a[1]==food.pos[1]){
+          this.case.move.call(this,'true');
+          this.case.eat();
+          return;
+        }
+        this.case.move.call(this);
+      }
+      
+
+     
       Snake.prototype.case = {
-        move:function(){
-         this.time = setInterval(function(){
+        move:function(jian){
             var newhead = new Square(this.head.x+this.directionNum.x,this.head.y+this.directionNum.y);
             if(newhead.x>=table.x){
               newhead.x = 0;
-              this.addRemove(newhead.x+newhead.y*table.x,true);
+              newhead.addRemove(newhead.x+newhead.y*table.x,true);
             }else{
-              this.addRemove(newhead.x+newhead.y*table.x,true);
+              newhead.addRemove(newhead.x+newhead.y*table.x,true);
             }
             if(newhead.y>=table.y){
               newhead.y = 0;
-              this.addRemove(newhead.x+newhead.y*table.x,true);
+              newhead.addRemove(newhead.x+newhead.y*table.x,true);
             }else{
-              this.addRemove(newhead.x+newhead.y*table.x,true);
+              newhead.addRemove(newhead.x+newhead.y*table.x,true);
             }
-            this.addRemove(this.tail.x+this.tail.y*table.x,false);
-            this.tail = this.body;
-            this.body = this.head;
-            this.head = newhead;
-          }.bind(this),500)
+            this.pos.unshift(newhead.x+','+newhead.y);
+           var newbody = new Square(this.head.x,this.head.y);
+           newbody.next = this.head.next;
+           newbody.last = null;
+           newbody.next.last = newbody;
+           newhead.next = newbody;
+           newhead.next.last = newhead;
+           newhead.last = null;
+           this.head = newhead;
+            if(!jian){
+              this.tail.addRemove(this.tail.x+this.tail.y*table.x,false); 
+              this.pos.pop();
+              this.tail = this.tail.last;
+              return;
+            }
+        },
+        die:function(){
+          clearInterval(game.time);
+          alert('you are died');
+          for(var i=0;i<$td.length;i++){
+            $td.eq(i).removeClass('snake');
+          }
+          game = new Game();
+          game.init();
+          game.begin(); 
+        },
+        eat:function(){
+          Createfood();
+          game.score++;
         }
       }
-      snake = new Snake();
-      snake.init();
+
+      // 创建食物对象
+      function Createfood(){
+        var a = parseInt(Math.random()*(table.x*table.y-1));
+        while(snake.pos.indexOf([a%30,parseInt(a/30)])!=-1){
+          var a = parseInt(Math.random()*(table.x*table.y-1));
+        }
+        food = new Square(a%30,parseInt(a/30));
+        food.pos=[food.x,food.y];
+        food.addRemove(a,true);
+      }
+
+      // 创建游戏对象
+      function Game(){
+        this.score = 0;
+        this.time = null;
+      }
+      Game.prototype.init=function(){
+        snake = new Snake();
+        snake.init(); 
+        Createfood();
+        this.time = setInterval(function(){
+          snake.getNext();
+        },200)
+      }
+      Game.prototype.begin = function(){
+        document.onkeydown=function(e){
+          // e.preventDefault();
+          if(e.keyCode==39&&snake.directionNum!=snake.direction.left){
+            snake.directionNum=snake.direction.right;
+          }
+          if(e.keyCode==37&&snake.directionNum!=snake.direction.right){
+            snake.directionNum=snake.direction.left;
+          }
+          if(e.keyCode==38&&snake.directionNum!=snake.direction.bottom){
+            snake.directionNum=snake.direction.top;
+          }
+          if(e.keyCode==40&&snake.directionNum!=snake.direction.top){
+            snake.directionNum=snake.direction.bottom;
+          }
+        }
+      }
+      game = new Game();
+      game.init();
+      game.begin();
     </script>
 </body>
 </html>
